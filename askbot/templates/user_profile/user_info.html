@@ -60,7 +60,7 @@
                 <td>{% trans %}groups{% endtrans %}</td>
                 <td>
                     <div id="user-groups">
-                        <table id="groups-list">
+                        <table class="groups-list">
                             {% for group in user_groups %}
                             <tr>
                                 {{ macros.user_group(group, groups_membership_info[group.id]) }}
