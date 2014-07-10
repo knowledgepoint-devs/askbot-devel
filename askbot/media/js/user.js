@@ -802,7 +802,7 @@ UserGroup.prototype.setGroupsContainer = function(container){
 UserGroup.prototype.decorate = function(element){
     this._element = element;
     this._name = $.trim(element.find('a').html());
-    var deleter = new DeleteIcon();
+    var deleter = new DeleteIcon('Remove from this group');
     deleter.setHandler(this.getDeleteHandler());
     //deleter.setContent(gettext('Remove'));
     this._element.find('td:last').append(deleter.getElement());
