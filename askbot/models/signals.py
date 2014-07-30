@@ -28,6 +28,7 @@ user_updated = django.dispatch.Signal(providing_args=['instance', 'updated_by'])
 user_registered = django.dispatch.Signal(providing_args=['user',])
 #todo: move this to authentication app
 user_logged_in = django.dispatch.Signal(providing_args=['session'])
+#group_membership_changed = django.dispatch.Signal(providing_args=['group', 'actor', 'outcome'])
 
 new_answer_posted = django.dispatch.Signal(
     providing_args=['answer', 'user', 'form_data']

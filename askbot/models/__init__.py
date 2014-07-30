@@ -3002,6 +3002,11 @@ def user_edit_group_membership(self, user=None, group=None,
 
     returns instance of GroupMembership (if action is "add") or None
     """
+    #import pdb; pdb.set_trace()
+    # All methods below of adding an user to a group come through here:
+    # * user joins open group
+    # * user requests to join moderated group
+    # * mod adds an user to a group
     if action == 'add':
         #calculate new level
         openness = group.get_openness_level_for_user(user)
@@ -3037,6 +3042,20 @@ def user_edit_group_membership(self, user=None, group=None,
 
         if approved_at != None or level != None:
             membership.save()
+
+        #if membership.level == GroupMembership.PENDING:
+        #    outcome = 'requested'
+        #elif self == user:
+        #    outcome = 'added'
+        #else:
+        #    outcome = 'joined'
+        #    
+        #signals.group_membership_changed.send_robust(
+        #    sender = user, 
+        #    group = group,
+        #    actor = self,
+        #    outcome = outcome
+        #)
 
         return membership
 

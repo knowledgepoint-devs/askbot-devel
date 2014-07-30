@@ -37,6 +37,7 @@ from askbot import const
 from askbot import mail
 from askbot.conf import settings as askbot_settings
 from askbot.mail import send_email_key
+#from askbot.models import signals
 from askbot.utils import html as html_utils
 from askbot.utils import category_tree
 from askbot.utils import decorators
@@ -1476,13 +1477,27 @@ def moderate_group_join_request(request):
 
     if group.has_moderator(request.user):
         if action == 'approve':
+            #import pdb; pdb.set_trace()
+            # * mod approves request to join moderated group
             group_membership.level = models.GroupMembership.FULL
             group_membership.approved_at = datetime.datetime.now()
             group_membership.save()
             msg_data = {'user': applicant.username, 'group': group.name}
             message = _('%(user)s, welcome to group %(group)s!') % msg_data
             applicant.message_set.create(message=message)
+            #signals.group_membership_changed.send_robust(
+            #    sender = applicant, 
+            #    group = group_membership.group,
+            #    actor = request.user,
+            #    outcome = 'approved'
+            #)
         else:
+            #signals.group_membership_changed.send_robust(
+            #    sender = applicant, 
+            #    group = group_membership.group,
+            #    actor = request.user,
+            #    outcome = 'denied'
+            #)
             group_membership.delete()
 
         url = request.user.get_absolute_url() + '?sort=inbox&section=join_requests'
