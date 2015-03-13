@@ -7,11 +7,25 @@ To make more models accessible in the Django admin interface, add more classes s
 Names of the classes must be like `SomeModelAdmin`, where `SomeModel` must
 exactly match name of the model used in the project
 """
+from django import forms
 from django.conf import settings as django_settings
 from django.contrib import admin
 from django.contrib.admin import SimpleListFilter
+from django.contrib.auth.models import User
 from askbot import models
 from askbot import const
+
+def build_user_ordering_form_class(cls, user_field_names):
+    cls_body_defs = {}
+    for field_name in user_field_names:
+        cls_body_defs[field_name] = forms.ModelChoiceField(queryset=User.objects.order_by('username'))
+    cls_body_defs['Meta'] = type('Meta', (object,), {'model': cls})
+    UserOrderingModelForm = type(
+        cls.__name__+'Form', 
+        (forms.ModelForm,),
+        cls_body_defs
+    )
+    return UserOrderingModelForm
 
 
 admin.site.register(models.Vote)
@@ -124,12 +138,13 @@ admin.site.register(models.QuestionView, QuestionViewAdmin)
 class PostToGroupInline(admin.TabularInline):
     model = models.PostToGroup
     extra = 1
-
+    
 class PostAdmin(admin.ModelAdmin):
     list_display = ('id', 'post_type', 'thread', 'author', 'text_30', 'added_at', 'deleted', 'in_groups', 'is_published', 'is_private', 'vote_up_count', 'language_code')
     list_filter = ('deleted', 'post_type', 'language_code', 'vote_up_count')
     search_fields = ('id', 'thread__title', 'text', 'author__username')
     inlines = (PostToGroupInline,)
+    form = build_user_ordering_form_class(models.Post, ['author', 'deleted_by', 'locked_by'])
 
     def text_30(self, obj):
         return obj.text[:30]
@@ -167,6 +182,7 @@ class ThreadAdmin(admin.ModelAdmin):
     list_filter = ('deleted', 'closed', 'language_code', 'site')
     search_fields = ('last_activity_by__username', 'title')
     inlines = (ThreadToGroupInline, SpacesInline)
+    form = build_user_ordering_form_class(models.Thread, ['last_activity_by'])
 
     def in_groups(self, obj):
         return ', '.join(obj.groups.exclude(name__startswith=models.user.PERSONAL_GROUP_NAME_PREFIX).values_list('name', flat=True))
@@ -245,7 +261,6 @@ class UserProfileAdmin(admin.ModelAdmin):
         return ', '.join(obj.subscribed_sites.all().values_list('name', flat=True))
 admin.site.register(models.UserProfile, UserProfileAdmin)
 
-from django.contrib.auth.models import User
 try:
     admin.site.unregister(User)
 finally:
@@ -300,7 +315,7 @@ finally:
 
     from django.contrib.auth.admin import UserAdmin as OrigUserAdmin
     class UserAdmin(OrigUserAdmin):
-        list_display = OrigUserAdmin.list_display + ('languages', 
+        list_display = ('id',) + OrigUserAdmin.list_display + ('languages', 
             'date_joined', 'reputation', 
             'is_administrator', 'is_moderator', 'email_isvalid',
             'my_interesting_tags', 'interesting_tag_wildcards',
