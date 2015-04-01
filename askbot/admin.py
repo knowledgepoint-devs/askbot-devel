@@ -15,14 +15,21 @@ from django.contrib.auth.models import User
 from askbot import models
 from askbot import const
 
-def build_user_ordering_form_class(cls, user_field_names):
+def build_user_ordering_form_class(cls, user_field_names=None, multiple_user_field_names=None):
     """
     Return a suitable subclass of forms.ModelForm where every ModelChoiceField 
     relating to the User table lists usernames in alphabetical order.
     """
+    user_field_names = user_field_names or []
+    multiple_user_field_names = multiple_user_field_names or []
     cls_body_defs = {}
     for field_name in user_field_names:
         cls_body_defs[field_name] = forms.ModelChoiceField(queryset=User.objects.order_by('username'))
+    # This causes us to lose the help text below - and possibly other stuff?
+    # Hold down "Control", or "Command" on a Mac, to select more than one.
+    # See django/db/models/fields/related.py
+    for field_name in multiple_user_field_names:
+        cls_body_defs[field_name] = forms.ModelMultipleChoiceField(queryset=User.objects.order_by('username'))
     cls_body_defs['Meta'] = type('Meta', (object,), {'model': cls})
     UserOrderingModelForm = type(
         cls.__name__+'Form', 
@@ -87,8 +94,7 @@ class ActivityAdmin(admin.ModelAdmin):
     list_filter = ('activity_type', 'content_type')
     search_fields = ('user__username', 'object_id', 'question__id', 'question__thread__id', 'question__thread__title')
 
-    form = build_user_ordering_form_class(models.Activity, ['user'])
-    # TODO: multiple choice field 'receiving_users'
+    form = build_user_ordering_form_class(models.Activity, ['user'], ['receiving_users'])
 
     def recipients_list(self, obj):
         return ', '.join(obj.recipients.all().values_list('username', flat=True))
@@ -206,8 +212,7 @@ class ThreadAdmin(admin.ModelAdmin):
     list_filter = ('deleted', 'closed', 'language_code', 'site')
     search_fields = ('last_activity_by__username', 'title')
     inlines = (ThreadToGroupInline, SpacesInline)
-    form = build_user_ordering_form_class(models.Thread, ['last_activity_by', 'closed_by'])
-    # TODO: multiple choice 'followed_by'
+    form = build_user_ordering_form_class(models.Thread, ['last_activity_by', 'closed_by'], ['followed_by'])
 
     def in_groups(self, obj):
         return ', '.join(obj.groups.exclude(name__startswith=models.user.PERSONAL_GROUP_NAME_PREFIX).values_list('name', flat=True))
