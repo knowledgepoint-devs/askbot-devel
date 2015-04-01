@@ -16,6 +16,10 @@ from askbot import models
 from askbot import const
 
 def build_user_ordering_form_class(cls, user_field_names):
+    """
+    Return a suitable subclass of forms.ModelForm where every ModelChoiceField 
+    relating to the User table lists usernames in alphabetical order.
+    """
     cls_body_defs = {}
     for field_name in user_field_names:
         cls_body_defs[field_name] = forms.ModelChoiceField(queryset=User.objects.order_by('username'))
@@ -28,7 +32,6 @@ def build_user_ordering_form_class(cls, user_field_names):
     return UserOrderingModelForm
 
 
-admin.site.register(models.Vote)
 admin.site.register(models.FavoriteQuestion)
 admin.site.register(models.Award)
 admin.site.register(models.Repute)
@@ -51,9 +54,19 @@ class TagAdmin(admin.ModelAdmin):
     list_filter = ('deleted', 'status', InSite)
     search_fields = ('name',)
 
+    form = build_user_ordering_form_class(models.Tag, ['created_by', 'suggested_by'])
+
     def in_sites(self, obj):
         return ', '.join(obj.sites.all().values_list('name', flat=True))
 admin.site.register(models.Tag, TagAdmin)
+
+class VoteAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'vote', 'voted_at', 'voted_post')
+    list_filter = ('vote', 'voted_at')
+    search_fields = ('user__username', 'voted_post__html')
+    
+    form = build_user_ordering_form_class(models.Vote, ['user'])
+admin.site.register(models.Vote, VoteAdmin)
 
 class SpaceAdmin(admin.ModelAdmin):
     list_display = ('id', 'name')
@@ -73,6 +86,9 @@ class ActivityAdmin(admin.ModelAdmin):
     list_display = ('user', 'active_at', 'activity_type', 'question', 'content_type', 'object_id', 'content_object', 'recipients_list', 'receiving_users_list')
     list_filter = ('activity_type', 'content_type')
     search_fields = ('user__username', 'object_id', 'question__id', 'question__thread__id', 'question__thread__title')
+
+    form = build_user_ordering_form_class(models.Activity, ['user'])
+    # TODO: multiple choice field 'receiving_users'
 
     def recipients_list(self, obj):
         return ', '.join(obj.recipients.all().values_list('username', flat=True))
@@ -106,12 +122,16 @@ class GroupMembershipAdmin(admin.ModelAdmin):
     list_display = ('group', 'user', 'level')
     list_filter = ('level',)
     search_fields = ('user__username',)
+
+    form = build_user_ordering_form_class(models.GroupMembership, ['user'])
 admin.site.register(models.GroupMembership, GroupMembershipAdmin)
 
 class EmailFeedSettingAdmin(admin.ModelAdmin):
     list_display = ('id', 'subscriber', 'email_tag_filter_strategy', 'feed_type', 'frequency', 'added_at', 'reported_at' )
     list_filter = ('frequency', 'feed_type')
     search_fields = ('subscriber__username',)
+
+    form = build_user_ordering_form_class(models.EmailFeedSetting, ['subscriber'])
     
     def email_tag_filter_strategy(self, obj):
         if obj.feed_type == 'q_all':
@@ -133,6 +153,8 @@ admin.site.register(models.EmailFeedSetting, EmailFeedSettingAdmin)
 class QuestionViewAdmin(admin.ModelAdmin):
     list_display = ('who', 'question', 'when')
     search_fields = ('who__username',)
+
+    form = build_user_ordering_form_class(models.QuestionView, ['who'])
 admin.site.register(models.QuestionView, QuestionViewAdmin)
 
 class PostToGroupInline(admin.TabularInline):
@@ -144,7 +166,7 @@ class PostAdmin(admin.ModelAdmin):
     list_filter = ('deleted', 'post_type', 'language_code', 'vote_up_count')
     search_fields = ('id', 'thread__title', 'text', 'author__username')
     inlines = (PostToGroupInline,)
-    form = build_user_ordering_form_class(models.Post, ['author', 'deleted_by', 'locked_by'])
+    form = build_user_ordering_form_class(models.Post, ['author', 'deleted_by', 'locked_by', 'last_edited_by'])
 
     def text_30(self, obj):
         return obj.text[:30]
@@ -161,6 +183,8 @@ class PostRevisionAdmin(admin.ModelAdmin):
     list_filter = ('approved',)
     search_fields = ('author__username', 'post__id', 'post__thread__title')
     ordering = ('-id',)
+
+    form = build_user_ordering_form_class(models.PostRevision, ['author', 'approved_by'])
 
     def post_id(self, obj):
         return obj.post.id
@@ -182,7 +206,8 @@ class ThreadAdmin(admin.ModelAdmin):
     list_filter = ('deleted', 'closed', 'language_code', 'site')
     search_fields = ('last_activity_by__username', 'title')
     inlines = (ThreadToGroupInline, SpacesInline)
-    form = build_user_ordering_form_class(models.Thread, ['last_activity_by'])
+    form = build_user_ordering_form_class(models.Thread, ['last_activity_by', 'closed_by'])
+    # TODO: multiple choice 'followed_by'
 
     def in_groups(self, obj):
         return ', '.join(obj.groups.exclude(name__startswith=models.user.PERSONAL_GROUP_NAME_PREFIX).values_list('name', flat=True))
@@ -230,6 +255,8 @@ admin.site.register(models.QuestionWidget, QuestionWidgetAdmin)
 class DraftQuestionAdmin(admin.ModelAdmin):
     list_display = ('id', 'author', 'title', 'tagnames')
     search_fields = ('author__username', 'title', 'tagnames')
+
+    form = build_user_ordering_form_class(models.DraftQuestion, ['author'])
 admin.site.register(models.DraftQuestion, DraftQuestionAdmin)
 
 
@@ -256,6 +283,7 @@ class UserProfileAdmin(admin.ModelAdmin):
     list_filter = ('default_site', SubscribedToSite)
     search_fields = ('auth_user__username',)
     filter_horizontal = ('subscribed_sites',)
+    form = build_user_ordering_form_class(models.UserProfile, ['auth_user'])
 
     def subs_sites(self, obj):
         return ', '.join(obj.subscribed_sites.all().values_list('name', flat=True))
