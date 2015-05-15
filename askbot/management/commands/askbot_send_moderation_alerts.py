@@ -85,7 +85,7 @@ def notify_moderator(user):
     mail.send_mail(
         subject_line=subject_line,
         body_text=template.render({'user': user}),
-        recipient_list=[user,]
+        recipient=user
     )
 
 
@@ -106,6 +106,7 @@ class Command(NoArgsCommand):
         if len(mods) == 0:
             return
 
+        #import pdb; pdb.set_trace()
         for mod in mods:
             notify_moderator(mod)
 

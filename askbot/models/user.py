@@ -476,6 +476,24 @@ class GroupQuerySet(models.query.QuerySet):
         )
 
     def get_for_user(self, user=None, private=False):
+        #result = self.filter(user=user)
+        #if private:
+        #    global_group = Group.objects.get_global_group()
+        #    result = result.exclude(id=global_group.id)
+        #return result
+
+        #result = self.filter(groupmembership__level='full', groupmembership__user=user)
+        #if private:
+        #    global_group = Group.objects.get_global_group()
+        #    result = result.exclude(id=global_group.id)
+        #return result
+
+        #result = self.filter(user=user, user__groupmembership='full')
+        #if private:
+        #    global_group = Group.objects.get_global_group()
+        #    result = result.exclude(id=global_group.id)
+        #return result
+
         if private:
             global_group = Group.objects.get_global_group()
             return self.filter(
