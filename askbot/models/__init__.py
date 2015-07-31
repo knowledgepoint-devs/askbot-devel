@@ -2515,8 +2515,13 @@ def user_get_profile_url(self, profile_section=None):
         url += "?sort=" + profile_section
     return url
 
-def user_get_absolute_url(self):
-    return self.get_profile_url()
+def user_get_absolute_url(self, as_full_url=False):
+    profile_url = self.get_profile_url()
+    if as_full_url:
+        site = Site.objects.get(id=django_settings.SITE_ID)
+        # TODO: Use urllib to build this properly?
+        return askbot.get_site_protocol(site) + site.domain + profile_url
+    return profile_url
 
 def user_set_languages(self, langs):
     self.languages = ' '.join(langs)
@@ -3404,7 +3409,7 @@ def format_instant_notification_email(
         raise ValueError('unrecognized post type')
 
     post_url = post.get_absolute_url(as_full_url=True)
-    user_url = from_user.get_absolute_url()
+    user_url = from_user.get_absolute_url(as_full_url=True)
 
     if to_user.is_administrator_or_moderator() and askbot_settings.SHOW_ADMINS_PRIVATE_USER_DATA:
         user_link_fmt = '<a href="%(profile_url)s">%(username)s</a> (<a href="mailto:%(email)s">%(email)s</a>)'
